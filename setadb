@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+
+echo ADB devices
+echo -------------------
+
+idx=0
+show_menu_item() {
+    name=$1
+    echo $idx. [$name]
+    eval item$idx=$name
+    idx=$((idx+1))
+}
+
+set_device() {
+    echo Set to: $1
+    export ANDROID_SERIAL=$1
+}
+
+list=$(adb devices | awk 'NR>1 && NF>0 {printf "%s\n", $1}')
+
+show_menu_item Clear
+for i in $list ; do
+show_menu_item $i
+done
+
+echo -------------------
+echo -n Please select:
+read sidx
+
+if [ "$sidx" == "" ]; then
+echo "No Select!"
+elif [ "$sidx" == 0 ]; then
+set_device ""
+elif [ "$sidx" -lt "$idx" ]; then
+set_device `eval echo '$'item$sidx`
+else
+echo No Select!
+fi
+
+
