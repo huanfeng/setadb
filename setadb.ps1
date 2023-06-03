@@ -1,7 +1,7 @@
 function ShowMenuItem {
     param([string]$item)
     Write-Host "$global:IDX. [$item]"
-    Set-Variable -Name "DEVICE_$global:IDX" -Value $item
+    Set-Variable -Name "global:DEVICE_$global:IDX" -Value $item
     $global:IDX++
 }
 
