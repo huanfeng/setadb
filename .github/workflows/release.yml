@@ -1,0 +1,143 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      # CMD locates batch labels by byte offset and assumes CRLF. A .bat that
+      # ships with LF endings breaks every GOTO/CALL in it, so refuse to
+      # publish one. .gitattributes is what normalises this on checkout.
+      - name: Verify script line endings
+        shell: bash
+        run: |
+          python3 - << 'PY'
+          import sys
+
+          need_crlf = ["setadb.bat", "setadb.ps1", "install-profile.ps1"]
+          need_lf = ["setadb", "setadb.sh"]
+          bad = []
+
+          for f in need_crlf:
+              data = open(f, "rb").read()
+              if data.replace(b"\r\n", b"").count(b"\n"):
+                  bad.append(f"{f}: expected CRLF, found bare LF")
+              else:
+                  print(f"{f}: ok (CRLF)")
+
+          for f in need_lf:
+              data = open(f, "rb").read()
+              if data.count(b"\r\n"):
+                  bad.append(f"{f}: expected LF, found CRLF")
+              else:
+                  print(f"{f}: ok (LF)")
+
+          if bad:
+              print("\n".join(bad), file=sys.stderr)
+              sys.exit(1)
+          PY
+
+      - name: Package
+        id: package
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          name="setadb-${VERSION}"
+          mkdir -p dist/pkg
+          cp setadb.bat setadb.ps1 install-profile.ps1 setadb setadb.sh dist/pkg/
+          cp README.md README.en.md dist/pkg/
+          if [ -f LICENSE ]; then cp LICENSE dist/pkg/; fi
+          # Files sit at the archive root, so the Scoop manifest needs no
+          # extract_dir - one less thing to keep in sync with the version.
+          # Globbing the files explicitly (rather than 'zip -r .') guarantees
+          # entry names carry no './' prefix.
+          # -X keeps extra file attributes out so the archive stays reproducible.
+          (cd dist/pkg && zip -X "../${name}.zip" *)
+          echo "asset=${name}.zip" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Release ${{ github.ref_name }}
+          files: dist/${{ steps.package.outputs.asset }}
+
+  notify-scoop-bucket:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scoop.json
+          sparse-checkout-cone-mode: false
+
+      - name: Get version from tag
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Read scoop.json
+        id: scoop
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "name=$(jq -r .name .github/scoop.json)" >> "$GITHUB_OUTPUT"
+          echo "bin=$(jq -r .bin .github/scoop.json)" >> "$GITHUB_OUTPUT"
+          echo "description=$(jq -r .description .github/scoop.json)" >> "$GITHUB_OUTPUT"
+          echo "homepage=$(jq -r .homepage .github/scoop.json)" >> "$GITHUB_OUTPUT"
+          echo "license=$(jq -r .license .github/scoop.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Send repository_dispatch to scoop-bucket
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          APP: ${{ steps.scoop.outputs.name }}
+          ASSET_NAME: "${{ steps.scoop.outputs.name }}-${{ steps.version.outputs.version }}.zip"
+        run: |
+          set -euo pipefail
+          curl -fsSL \
+            -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.SCOOP_BUCKET_GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/huanfeng/scoop-bucket/dispatches" \
+            -d "$(jq -n \
+              --arg app "$APP" \
+              --arg repo "${{ github.repository }}" \
+              --arg version "$VERSION" \
+              --arg asset_name "$ASSET_NAME" \
+              --arg bin "${{ steps.scoop.outputs.bin }}" \
+              --arg description "${{ steps.scoop.outputs.description }}" \
+              --arg homepage "${{ steps.scoop.outputs.homepage }}" \
+              --arg license "${{ steps.scoop.outputs.license }}" \
+              '{
+                event_type: "update-scoop-manifest",
+                client_payload: {
+                  app: $app,
+                  repo: $repo,
+                  version: $version,
+                  asset_name: $asset_name,
+                  bin: $bin,
+                  description: $description,
+                  homepage: $homepage,
+                  license: $license
+                }
+              }'
+            )"

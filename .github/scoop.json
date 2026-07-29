@@ -1,0 +1,7 @@
+{
+  "name": "setadb",
+  "bin": "setadb.bat",
+  "description": "Switch the ADB target device by setting ANDROID_SERIAL",
+  "homepage": "https://github.com/huanfeng/setadb",
+  "license": "MIT"
+}

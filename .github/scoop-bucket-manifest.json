@@ -1,0 +1,26 @@
+{
+  "version": "0.0.0",
+  "architecture": {
+    "64bit": {
+      "url": "https://github.com/huanfeng/setadb/releases/download/v0.0.0/setadb-0.0.0.zip",
+      "bin": [
+        "setadb.bat"
+      ],
+      "hash": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  },
+  "description": "Switch the ADB target device by setting ANDROID_SERIAL",
+  "homepage": "https://github.com/huanfeng/setadb",
+  "license": "MIT",
+  "env_add_path": ".",
+  "notes": [
+    "CMD:        just run 'setadb'.",
+    "PowerShell: run 'setadb.ps1', or install a $PROFILE function once so that",
+    "            plain 'setadb' works there too:",
+    "                & \"$(scoop prefix setadb)\\install-profile.ps1\"",
+    "",
+    "Why: PATHEXT ranks .BAT above .PS1, so typing 'setadb' in PowerShell would",
+    "run setadb.bat inside a throw-away cmd.exe and the setting would be lost.",
+    "The script detects that case and warns you instead of failing silently."
+  ]
+}
