@@ -1,40 +1,66 @@
 #!/usr/bin/env bash
+# setadb - compatibility entry point for `source setadb`
+# https://github.com/huanfeng/setadb
+#
+# The real implementation lives in setadb.sh. Sourcing this file loads that
+# function and runs it once, which keeps the historical `source setadb`
+# usage working. Sourcing setadb.sh from your rc file is the better way -
+# see 'setadb --install'.
 
-echo ADB devices
-echo -------------------
-
-idx=0
-show_menu_item() {
-    name=$1
-    echo $idx. [$name]
-    eval item$idx=$name
-    idx=$((idx+1))
-}
-
-set_device() {
-    echo Set to: $1
-    export ANDROID_SERIAL=$1
-}
-
-list=$(adb devices | awk 'NR>1 && NF>0 {printf "%s\n", $1}')
-
-show_menu_item Clear
-for i in $list ; do
-show_menu_item $i
-done
-
-echo -------------------
-echo -n Please select:
-read sidx
-
-if [ "$sidx" == "" ]; then
-echo "No Select!"
-elif [ "$sidx" == 0 ]; then
-set_device ""
-elif [ "$sidx" -lt "$idx" ]; then
-set_device `eval echo '$'item$sidx`
+if [ -n "${BASH_VERSION:-}" ]; then
+    _setadb_entry="${BASH_SOURCE[0]}"
 else
-echo No Select!
+    _setadb_entry="$0"
+fi
+case "$_setadb_entry" in
+    /*) : ;;
+    *) _setadb_entry="$(cd "$(dirname "$_setadb_entry")" 2>/dev/null && pwd)/$(basename "$_setadb_entry")" ;;
+esac
+_setadb_lib="$(dirname "$_setadb_entry")/setadb.sh"
+
+_setadb_entry_sourced=0
+if [ -n "${BASH_VERSION:-}" ]; then
+    [ "${BASH_SOURCE[0]}" != "$0" ] && _setadb_entry_sourced=1
+elif [ -n "${ZSH_VERSION:-}" ]; then
+    case "${ZSH_EVAL_CONTEXT:-}" in *:file*) _setadb_entry_sourced=1 ;; esac
+else
+    _setadb_entry_sourced=1
 fi
 
+if [ ! -f "$_setadb_lib" ]; then
+    printf "[setadb] Error: cannot find %s\n" "$_setadb_lib" >&2
+    if [ "$_setadb_entry_sourced" = "1" ]; then
+        unset _setadb_entry _setadb_lib _setadb_entry_sourced
+        return 1
+    fi
+    exit 1
+fi
 
+if [ "$_setadb_entry_sourced" = "0" ]; then
+    printf '\n'
+    printf '  ############################################################\n'
+    printf '  #  setadb cannot be run as a normal command.               #\n'
+    printf '  ############################################################\n'
+    printf '\n'
+    printf '  It has to modify ANDROID_SERIAL in YOUR shell. A script run\n'
+    printf '  normally gets its own process, and that process - along with\n'
+    printf '  everything it exported - disappears the moment it finishes.\n'
+    printf '\n'
+    printf '  Use it like this instead:\n'
+    printf '\n'
+    printf '      source "%s"\n' "$_setadb_entry"
+    printf '\n'
+    printf '  Or install it permanently (recommended):\n'
+    printf '\n'
+    printf '      echo '"'"'source "%s"'"'"' >> ~/.bashrc && source ~/.bashrc\n' "$_setadb_lib"
+    printf '      echo '"'"'source "%s"'"'"' >> ~/.zshrc  && source ~/.zshrc\n' "$_setadb_lib"
+    printf '\n'
+    printf '  After that, just run:  setadb\n'
+    printf '\n'
+    exit 1
+fi
+
+# shellcheck source=setadb.sh
+. "$_setadb_lib"
+unset _setadb_entry _setadb_lib _setadb_entry_sourced
+setadb "$@"
