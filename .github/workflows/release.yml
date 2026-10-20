@@ -31,7 +31,7 @@ jobs:
           import sys
 
           need_crlf = ["setadb.bat", "setadb.ps1", "install-profile.ps1"]
-          need_lf = ["setadb", "setadb.sh"]
+          need_lf = ["setadb", "setadb.sh", "install.sh"]
           bad = []
 
           for f in need_crlf:

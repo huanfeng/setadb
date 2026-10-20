@@ -39,7 +39,26 @@ scoop install huanfeng/setadb
 Linux 下**必须**用 `source` 的方式加载, 因为脚本要修改的是**你当前 Shell** 的环境变量,
 而普通执行的脚本运行在子进程里, 进程一结束, 它设置的一切都随之消失。
 
-推荐做法是把 `setadb.sh` 加入 Shell 配置, 得到一个 `setadb` 函数:
+**一键安装 (推荐)**, 不需要 git:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/huanfeng/setadb/main/install.sh | sh
+```
+
+它会把 `setadb.sh` 下载到 `~/.local/share/setadb/`, 并在 `~/.bashrc` / `~/.zshrc` 中加入加载语句
+(当前 Shell 对应的配置文件不存在时会创建, 另一个只在已存在时才添加)。
+重新执行即为更新, 不会重复添加。安装后新开一个终端, 直接输入 `setadb` 即可。
+
+```bash
+# 卸载
+curl -fsSL https://raw.githubusercontent.com/huanfeng/setadb/main/install.sh | sh -s -- --uninstall
+```
+
+可用环境变量: `SETADB_DIR` 安装目录, `SETADB_REF` 分支/tag (默认 `main`),
+`SETADB_URL` 直接指定 `setadb.sh` 的下载地址 (例如镜像)。没有 curl 时可用
+`wget -qO- <同一地址> | sh`。
+
+**手动安装**: 把 `setadb.sh` 加入 Shell 配置, 得到一个 `setadb` 函数:
 
 ```bash
 # bash
@@ -116,6 +135,7 @@ Please select:
 | `setadb.ps1` | Windows PowerShell 版本 |
 | `install-profile.ps1` | 把 `setadb` 函数写入 PowerShell `$PROFILE` |
 | `setadb.sh` | Linux/macOS 版本, 供 `source` 加载, 定义 `setadb` 函数 |
+| `install.sh` | Linux/macOS 一键安装/卸载脚本 |
 | `setadb` | 兼容旧用法 `source setadb`, 内部加载 `setadb.sh` |
 
 > `.gitattributes` 强制 `.bat`/`.ps1` 使用 CRLF 换行。

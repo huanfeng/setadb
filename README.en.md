@@ -41,8 +41,29 @@ On Linux the script **must** be loaded with `source`. It has to modify the
 environment of **your current shell**, and a normally executed script runs in a
 child process - once that process exits, everything it set is gone with it.
 
-The recommended way is to load `setadb.sh` from your shell config, which gives
-you a `setadb` function:
+**One-line install (recommended)**, no git needed:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/huanfeng/setadb/main/install.sh | sh
+```
+
+This downloads `setadb.sh` to `~/.local/share/setadb/` and adds a line that
+loads it to `~/.bashrc` / `~/.zshrc` (the rc file of your current shell is
+created if missing; the other one is only touched if it already exists).
+Re-running it updates setadb and never duplicates the line. Open a new
+terminal afterwards and just run `setadb`.
+
+```bash
+# uninstall
+curl -fsSL https://raw.githubusercontent.com/huanfeng/setadb/main/install.sh | sh -s -- --uninstall
+```
+
+Environment variables: `SETADB_DIR` install directory, `SETADB_REF` branch/tag
+(default `main`), `SETADB_URL` explicit download URL of `setadb.sh` (e.g. a
+mirror). Without curl, use `wget -qO- <same URL> | sh`.
+
+**Manual install**: load `setadb.sh` from your shell config, which gives you a
+`setadb` function:
 
 ```bash
 # bash
@@ -122,6 +143,7 @@ For the same reason, `setadb` on Linux is a shell function too.
 | `setadb.ps1` | Windows PowerShell version |
 | `install-profile.ps1` | Writes the `setadb` function into your PowerShell `$PROFILE` |
 | `setadb.sh` | Linux/macOS version, `source` it to define the `setadb` function |
+| `install.sh` | One-line installer/uninstaller for Linux/macOS |
 | `setadb` | Compatibility entry for the old `source setadb`, loads `setadb.sh` |
 
 > `.gitattributes` forces CRLF for `.bat`/`.ps1`. This is not a style choice:
