@@ -85,12 +85,12 @@ _setadb_nth() {
 }
 
 _setadb_menu() {
-    _sa_devs="$1"
+    _sa_mdevs="$1"
     printf 'ADB devices\n'
     printf -- '-------------------\n'
     printf '  0. [Clear]\n'
     _sa_i=1
-    printf '%s\n' "$_sa_devs" | while IFS="$(printf '\t')" read -r _sa_serial _sa_state; do
+    printf '%s\n' "$_sa_mdevs" | while IFS="$(printf '\t')" read -r _sa_serial _sa_state; do
         [ -z "$_sa_serial" ] && continue
         if [ "$_sa_serial" = "${ANDROID_SERIAL:-}" ]; then
             printf '* %s. [%s] %s\n' "$_sa_i" "$_sa_serial" "$_sa_state"
@@ -100,7 +100,7 @@ _setadb_menu() {
         _sa_i=$((_sa_i + 1))
     done
     printf -- '-------------------\n'
-    unset _sa_devs _sa_i _sa_serial _sa_state
+    unset _sa_mdevs _sa_i _sa_serial _sa_state
 }
 
 _setadb_apply() {
